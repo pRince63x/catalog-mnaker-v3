@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Catalog Maker">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="Create beautiful product catalogs with photos and prices in CHF">
+    <meta name="robots" content="index, follow">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <title>Catalog Maker - Create Product Catalogs</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #dc2626;
+            --accent: #059669;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        /* Tabs */
+        .tabs {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            display: flex;
+            background: var(--card);
+            z-index: 99;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-light);
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Content */
+        .content {
+            padding-top: 118px;
+            padding: 118px 12px 100px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Empty State */
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            color: var(--border);
+            margin-bottom: 16px;
+        }
+
+        .empty-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        /* Gallery */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .gallery-item {
+            background: var(--card);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: relative;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 140px;
+            object-fit: contain;
+            background: #f1f5f9;
+        }
+
+        .gallery-item-info {
+            padding: 8px 10px;
+        }
+
+        .gallery-item-name {
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gallery-item-price {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--secondary);
+            margin-top: 2px;
+        }
+
+        .gallery-item-delete {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        /* Settings */
+        .settings-section {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .settings-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .settings-title .material-icons {
+            color: var(--primary);
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            height: 44px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0 12px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea {
+            height: 70px;
+            padding: 10px 12px;
+            resize: none;
+        }
+
+        /* Toggle */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .toggle-row:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-text {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .toggle {
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: var(--border);
+            border: none;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            top: 3px;
+            left: 3px;
+            transition: all 0.2s;
+        }
+
+        .toggle.active {
+            background: var(--primary);
+        }
+
+        .toggle.active::after {
+            left: 23px;
+        }
+
+        /* Color Picker */
+        .color-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+
+        .color-input {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        /* Logo */
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .logo-box {
+            width: 60px;
+            height: 60px;
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        .logo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            height: 48px;
+            border-radius: 12px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            margin-top: 8px;
+        }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 90;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5); }
+        }
+
+        /* Sheet */
+        .sheet-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .sheet-bg.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-radius: 20px 20px 0 0;
+            z-index: 201;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .sheet.active {
+            transform: translateY(0);
+        }
+
+        .sheet-handle {
+            width: 40px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 12px auto;
+        }
+
+        .sheet-content {
+            padding: 0 16px 24px;
+        }
+
+        .sheet-title {
+            font-size: 18px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        /* Camera */
+        .camera-box {
+            width: 100%;
+            aspect-ratio: 3/4;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .camera-box video,
+        .camera-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .camera-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            background: #334155;
+            cursor: pointer;
+        }
+
+        .camera-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+
+        .capture-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid var(--primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .capture-btn-inner {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .cam-action {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* PDF Preview */
+        .pdf-preview {
+            width: 100%;
+            aspect-ratio: 210/297;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .pdf-header {
+            padding: 6px 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 30px;
+        }
+
+        .pdf-header-logo {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+        }
+
+        .pdf-header-text {
+            font-size: 6px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .pdf-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 4px;
+            padding: 4px;
+            height: calc(100% - 30px);
+        }
+
+        .pdf-item {
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-item img {
+            width: 100%;
+            flex: 1;
+            object-fit: contain;
+            background: white;
+        }
+
+        .pdf-item-info {
+            padding: 2px;
+            text-align: center;
+        }
+
+        .pdf-item-name {
+            font-size: 5px;
+            font-weight: 600;
+        }
+
+        .pdf-item-price {
+            font-size: 7px;
+            font-weight: 800;
+            color: var(--secondary);
+        }
+
+        /* Share */
+        .share-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .share-btn {
+            flex: 1;
+            height: 44px;
+            border-radius: 10px;
+            border: none;
+            background: var(--bg);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .share-btn.primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            z-index: 300;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1 class="header-title">Catalog Maker</h1>
+        <div class="header-actions">
+            <button class="header-btn" id="settingsBtn"><span class="material-icons">settings</span></button>
+            <button class="header-btn" id="pdfBtn"><span class="material-icons">picture_as_pdf</span></button>
+        </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+        <div class="tab active" data-tab="products">Products</div>
+        <div class="tab" data-tab="shop">Shop Info</div>
+    </nav>
+
+    <!-- Content -->
+    <main class="content">
+        <!-- Products Tab -->
+        <div class="tab-content active" id="productsTab">
+            <div class="empty" id="empty">
+                <span class="material-icons empty-icon">inventory_2</span>
+                <h2 class="empty-title">No Products</h2>
+                <p class="empty-text">Tap + to add your first product</p>
+            </div>
+            <div class="gallery" id="gallery" style="display:none;"></div>
+        </div>
+
+        <!-- Shop Info Tab -->
+        <div class="tab-content" id="shopTab">
+            <div class="settings-section">
+                <div class="settings-title"><span class="material-icons">store</span>Shop Details</div>
+                
+                <div class="logo-area">
+                    <div class="logo-box" id="logoBox">
+                        <span class="material-icons" style="color:var(--text-light)">add_photo_alternate</span>
+                    </div>
+                    <div>
+                        <div style="font-size:13px;font-weight:600">Shop Logo</div>
+                        <div class="logo-text">Tap to upload</div>
+                    </div>
+                    <input type="file" id="logoInput" accept="image/*" hidden>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Shop Name</label>
+                    <input type="text" class="form-input" id="shopName" placeholder="Your Shop Name">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Address</label>
+                    <textarea class="form-input form-textarea" id="shopAddress" placeholder="Your address"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">WhatsApp Number</label>
+                    <input type="text" class="form-input" id="whatsapp" placeholder="+41 79 123 45 67">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-title"><span class="material-icons">palette</span>Colors</div>
+                
+                <div class="color-row">
+                    <span class="toggle-text">Header Background</span>
+                    <input type="color" class="color-input" id="headerColor" value="#1e40af">
+                </div>
+                <div class="color-row">
+                    <span class="toggle-text">Price Color</span>
+                    <input type="color" class="color-input" id="priceColor" value="#dc2626">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-title"><span class="material-icons">visibility</span>Show in PDF</div>
+                
+                <div class="toggle-row">
+                    <span class="toggle-text">Shop Name</span>
+                    <button class="toggle active" id="showName"></button>
+                </div>
+                <div class="toggle-row">
+                    <span class="toggle-text">Address</span>
+                    <button class="toggle active" id="showAddress"></button>
+                </div>
+                <div class="toggle-row">
+                    <span class="toggle-text">WhatsApp</span>
+                    <button class="toggle active" id="showWhatsapp"></button>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="saveShop"><span class="material-icons">save</span>Save Settings</button>
+        </div>
+    </main>
+
+    <!-- FAB -->
+    <button class="fab" id="fab"><span class="material-icons">add</span></button>
+
+    <!-- Camera Sheet -->
+    <div class="sheet-bg" id="cameraBg"></div>
+    <div class="sheet" id="cameraSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+            <h2 class="sheet-title">Add Product</h2>
+            
+            <div class="camera-box">
+                <video id="video" autoplay playsinline style="display:none;"></video>
+                <img id="capturedImg" style="display:none;">
+                <div class="camera-placeholder" id="cameraPlaceholder">
+                    <span class="material-icons" style="font-size:48px">camera_alt</span>
+                    <p>Tap to start camera</p>
+                </div>
+            </div>
+
+            <div class="camera-controls" id="cameraControls">
+                <button class="cam-action" id="galleryBtn"><span class="material-icons">photo_library</span></button>
+                <button class="capture-btn" id="captureBtn"><div class="capture-btn-inner"></div></button>
+                <button class="cam-action" id="switchBtn"><span class="material-icons">flip_camera_ios</span></button>
+            </div>
+
+            <div id="productForm" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label">Product Name (Optional)</label>
+                    <input type="text" class="form-input" id="productName" placeholder="Product name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Price in CHF (Optional)</label>
+                    <input type="number" class="form-input" id="productPrice" placeholder="99.99" step="0.01">
+                </div>
+                <button class="btn btn-primary" id="saveProduct"><span class="material-icons">check</span>Save Product</button>
+                <button class="btn btn-secondary" id="retake"><span class="material-icons">refresh</span>Retake</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Sheet -->
+    <div class="sheet-bg" id="pdfBg"></div>
+    <div class="sheet" id="pdfSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+            <h2 class="sheet-title">PDF Preview</h2>
+            
+            <div class="pdf-preview" id="pdfPreview">
+                <div class="pdf-header" id="pdfHeader"></div>
+                <div class="pdf-grid" id="pdfGrid"></div>
+            </div>
+
+            <div class="share-row">
+                <button class="share-btn" id="downloadPdf"><span class="material-icons">download</span>Download</button>
+                <button class="share-btn primary" id="sharePdf"><span class="material-icons">share</span>Share</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Sheet -->
+    <div class="sheet-bg" id="settingsBg"></div>
+    <div class="sheet" id="settingsSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+            <h2 class="sheet-title">Settings</h2>
+            
+            <div class="settings-section">
+                <div class="settings-title"><span class="material-icons">sell</span>Price Format</div>
+                <div class="form-group">
+                    <select class="form-input" id="priceFormat">
+                        <option value="chf">CHF 99.99</option>
+                        <option value="after">99.99 CHF</option>
+                        <option value="fr">Fr. 99.99</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-title"><span class="material-icons">storage</span>Data</div>
+                <button class="btn btn-secondary" id="exportData" style="margin-top:0"><span class="material-icons">upload</span>Export Data</button>
+                <button class="btn btn-secondary" id="importData"><span class="material-icons">download</span>Import Data</button>
+                <input type="file" id="importFile" accept=".json" hidden>
+                <button class="btn btn-secondary" id="clearData" style="color:#dc2626"><span class="material-icons">delete</span>Clear All Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Data
+        let products = JSON.parse(localStorage.getItem('products') || '[]');
+        let settings = JSON.parse(localStorage.getItem('settings') || '{}');
+        let stream = null;
+        let facing = 'environment';
+        let capturedData = null;
+
+        // Default settings
+        settings = {
+            logo: '',
+            shopName: '',
+            shopAddress: '',
+            whatsapp: '',
+            headerColor: '#1e40af',
+            priceColor: '#dc2626',
+            showName: true,
+            showAddress: true,
+            showWhatsapp: true,
+            priceFormat: 'chf',
+            ...settings
+        };
+
+        // Elements
+        const $ = id => document.getElementById(id);
+        const empty = $('empty');
+        const gallery = $('gallery');
+        const toast = $('toast');
+
+        // Helpers
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function formatPrice(price) {
+            const n = parseFloat(price);
+            if (isNaN(n)) return '';
+            const f = n.toFixed(2);
+            switch(settings.priceFormat) {
+                case 'after': return f + ' CHF';
+                case 'fr': return 'Fr. ' + f;
+                default: return 'CHF ' + f;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('products', JSON.stringify(products));
+            localStorage.setItem('settings', JSON.stringify(settings));
+        }
+
+        // Render
+        function render() {
+            if (products.length === 0) {
+                empty.style.display = 'block';
+                gallery.style.display = 'none';
+                return;
+            }
+            empty.style.display = 'none';
+            gallery.style.display = 'grid';
+            gallery.innerHTML = products.map((p, i) => `
+                <div class="gallery-item">
+                    <img src="${p.image}" alt="${p.name}">
+                    <div class="gallery-item-info">
+                        <div class="gallery-item-name">${p.name || 'No name'}</div>
+                        ${p.price ? `<div class="gallery-item-price">${formatPrice(p.price)}</div>` : ''}
+                    </div>
+                    <button class="gallery-item-delete" onclick="deleteProduct(${i})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteProduct(i) {
+            products.splice(i, 1);
+            saveData();
+            render();
+            showToast('Deleted');
+        }
+
+        // Tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                $(tab.dataset.tab + 'Tab').classList.add('active');
+            });
+        });
+
+        // Sheets
+        function openSheet(sheet, bg) {
+            bg.classList.add('active');
+            sheet.classList.add('active');
+        }
+        function closeSheet(sheet, bg) {
+            bg.classList.remove('active');
+            sheet.classList.remove('active');
+        }
+
+        // Toggle buttons
+        document.querySelectorAll('.toggle').forEach(btn => {
+            btn.addEventListener('click', () => btn.classList.toggle('active'));
+        });
+
+        // Load settings
+        function loadSettings() {
+            $('shopName').value = settings.shopName || '';
+            $('shopAddress').value = settings.shopAddress || '';
+            $('whatsapp').value = settings.whatsapp || '';
+            $('headerColor').value = settings.headerColor;
+            $('priceColor').value = settings.priceColor;
+            $('showName').classList.toggle('active', settings.showName);
+            $('showAddress').classList.toggle('active', settings.showAddress);
+            $('showWhatsapp').classList.toggle('active', settings.showWhatsapp);
+            $('priceFormat').value = settings.priceFormat;
+            
+            if (settings.logo) {
+                $('logoBox').innerHTML = `<img src="${settings.logo}">`;
+            }
+        }
+
+        // Save shop settings
+        $('saveShop').addEventListener('click', () => {
+            settings.shopName = $('shopName').value;
+            settings.shopAddress = $('shopAddress').value;
+            settings.whatsapp = $('whatsapp').value;
+            settings.headerColor = $('headerColor').value;
+            settings.priceColor = $('priceColor').value;
+            settings.showName = $('showName').classList.contains('active');
+            settings.showAddress = $('showAddress').classList.contains('active');
+            settings.showWhatsapp = $('showWhatsapp').classList.contains('active');
+            saveData();
+            showToast('Settings saved!');
+        });
+
+        // Logo upload
+        $('logoBox').addEventListener('click', () => $('logoInput').click());
+        $('logoInput').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    settings.logo = ev.target.result;
+                    $('logoBox').innerHTML = `<img src="${settings.logo}">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Camera
+        async function startCamera() {
+            try {
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
+                $('video').srcObject = stream;
+                $('video').style.display = 'block';
+                $('cameraPlaceholder').style.display = 'none';
+            } catch (e) {
+                showToast('Camera error');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+                stream = null;
+            }
+        }
+
+        // FAB - Open camera sheet
+        $('fab').addEventListener('click', () => {
+            openSheet($('cameraSheet'), $('cameraBg'));
+            $('capturedImg').style.display = 'none';
+            $('cameraControls').style.display = 'flex';
+            $('productForm').style.display = 'none';
+            startCamera();
+        });
+
+        $('cameraPlaceholder').addEventListener('click', startCamera);
+
+        // Capture
+        $('captureBtn').addEventListener('click', () => {
+            const video = $('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            capturedData = canvas.toDataURL('image/jpeg', 0.9);
+            $('capturedImg').src = capturedData;
+            $('capturedImg').style.display = 'block';
+            $('video').style.display = 'none';
+            $('cameraControls').style.display = 'none';
+            $('productForm').style.display = 'block';
+            stopCamera();
+        });
+
+        // Switch camera
+        $('switchBtn').addEventListener('click', () => {
+            facing = facing === 'environment' ? 'user' : 'environment';
+            startCamera();
+        });
+
+        // Gallery pick
+        $('galleryBtn').addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = ev => {
+                        capturedData = ev.target.result;
+                        $('capturedImg').src = capturedData;
+                        $('capturedImg').style.display = 'block';
+                        $('cameraPlaceholder').style.display = 'none';
+                        $('cameraControls').style.display = 'none';
+                        $('productForm').style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        });
+
+        // Save product
+        $('saveProduct').addEventListener('click', () => {
+            if (!capturedData) return showToast('No photo');
+            products.push({
+                id: Date.now(),
+                image: capturedData,
+                name: $('productName').value.trim(),
+                price: $('productPrice').value.trim()
+            });
+            saveData();
+            render();
+            $('productName').value = '';
+            $('productPrice').value = '';
+            capturedData = null;
+            closeSheet($('cameraSheet'), $('cameraBg'));
+            showToast('Product saved!');
+        });
+
+        // Retake
+        $('retake').addEventListener('click', () => {
+            capturedData = null;
+            $('capturedImg').style.display = 'none';
+            $('cameraControls').style.display = 'flex';
+            $('productForm').style.display = 'none';
+            $('productName').value = '';
+            $('productPrice').value = '';
+            startCamera();
+        });
+
+        // Close camera sheet
+        $('cameraBg').addEventListener('click', () => {
+            closeSheet($('cameraSheet'), $('cameraBg'));
+            stopCamera();
+        });
+
+        // PDF Preview
+        function updatePdfPreview() {
+            // Header
+            let headerHtml = '';
+            if (settings.logo || settings.shopName) {
+                headerHtml = `
+                    ${settings.logo ? `<img src="${settings.logo}" class="pdf-header-logo">` : ''}
+                    <div>
+                        ${settings.showName && settings.shopName ? `<div class="pdf-header-text">${settings.shopName}</div>` : ''}
+                        ${settings.showAddress && settings.shopAddress ? `<div style="font-size:4px;color:rgba(255,255,255,0.8)">${settings.shopAddress}</div>` : ''}
+                        ${settings.showWhatsapp && settings.whatsapp ? `<div style="font-size:4px;color:#fbbf24">📱 ${settings.whatsapp}</div>` : ''}
+                    </div>
+                `;
+            }
+            $('pdfHeader').innerHTML = headerHtml;
+            $('pdfHeader').style.background = settings.headerColor;
+            $('pdfHeader').style.display = headerHtml ? 'flex' : 'none';
+
+            // Grid - 2x2 = 4 items per page
+            $('pdfGrid').innerHTML = products.slice(0, 4).map(p => `
+                <div class="pdf-item">
+                    <img src="${p.image}">
+                    <div class="pdf-item-info">
+                        ${p.name ? `<div class="pdf-item-name">${p.name}</div>` : ''}
+                        ${p.price ? `<div class="pdf-item-price" style="color:${settings.priceColor}">${formatPrice(p.price)}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Open PDF sheet
+        $('pdfBtn').addEventListener('click', () => {
+            openSheet($('pdfSheet'), $('pdfBg'));
+            updatePdfPreview();
+        });
+
+        $('pdfBg').addEventListener('click', () => closeSheet($('pdfSheet'), $('pdfBg')));
+
+        // Generate PDF - 2x2 grid, 4 photos per page, NO stretching
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const pageW = doc.internal.pageSize.getWidth();
+            const pageH = doc.internal.pageSize.getHeight();
+            const margin = 10;
+            const headerH = settings.logo || settings.shopName ? 20 : 0;
+            
+            // 2 columns, 2 rows = 4 items per page
+            const cols = 2;
+            const rows = 2;
+            const gap = 6;
+            
+            const availW = pageW - margin * 2;
+            const availH = pageH - margin * 2 - headerH - 10;
+            
+            const itemW = (availW - gap * (cols - 1)) / cols;
+            const itemH = (availH - gap * (rows - 1)) / rows;
+
+            for (let i = 0; i < products.length; i++) {
+                const pageIdx = Math.floor(i / 4);
+                const posOnPage = i % 4;
+                
+                if (posOnPage === 0 && i > 0) doc.addPage();
+
+                // Header
+                if (headerH > 0) {
+                    doc.setFillColor(settings.headerColor);
+                    doc.rect(0, 0, pageW, headerH, 'F');
+                    
+                    let hx = margin;
+                    if (settings.logo) {
+                        try {
+                            doc.addImage(settings.logo, 'PNG', hx, 3, 12, 12);
+                            hx += 16;
+                        } catch(e) {}
+                    }
+                    
+                    doc.setTextColor(255, 255, 255);
+                    if (settings.showName && settings.shopName) {
+                        doc.setFontSize(10);
+                        doc.setFont(undefined, 'bold');
+                        doc.text(settings.shopName, hx, 10);
+                    }
+                    if (settings.showAddress && settings.shopAddress) {
+                        doc.setFontSize(6);
+                        doc.text(settings.shopAddress, hx, 15);
+                    }
+                    if (settings.showWhatsapp && settings.whatsapp) {
+                        doc.setFontSize(6);
+                        doc.text('WhatsApp: ' + settings.whatsapp, pageW - margin - 30, 10);
+                    }
+                }
+
+                const col = posOnPage % cols;
+                const row = Math.floor(posOnPage / cols);
+                const x = margin + col * (itemW + gap);
+                const y = margin + headerH + row * (itemH + gap);
+
+                const p = products[i];
+                
+                // Image area (preserve aspect ratio, NO stretch)
+                const imgAreaH = itemH - 14;
+                let imgW = itemW - 4;
+                let imgH = imgAreaH - 4;
+                const imgX = x + (itemW - imgW) / 2;
+                const imgY = y + 2;
+
+                try {
+                    doc.addImage(p.image, 'JPEG', imgX, imgY, imgW, imgH, undefined, 'FAST');
+                } catch(e) {}
+
+                // Border
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(x, y, itemW, itemH);
+
+                // Name
+                if (p.name) {
+                    doc.setTextColor(30, 30, 30);
+                    doc.setFontSize(7);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(p.name, x + itemW / 2, y + imgAreaH + 5, { align: 'center' });
+                }
+
+                // Price
+                if (p.price) {
+                    const hex = settings.priceColor.replace('#', '');
+                    doc.setTextColor(parseInt(hex.substr(0,2), 16), parseInt(hex.substr(2,2), 16), parseInt(hex.substr(4,2), 16));
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(formatPrice(p.price), x + itemW / 2, y + itemH - 3, { align: 'center' });
+                }
+            }
+
+            // Page numbers
+            const total = Math.ceil(products.length / 4);
+            for (let p = 0; p < total; p++) {
+                doc.setPage(p + 1);
+                doc.setTextColor(150);
+                doc.setFontSize(8);
+                doc.text(`Page ${p + 1}/${total}`, pageW / 2, pageH - 5, { align: 'center' });
+            }
+
+            return doc;
+        }
+
+        // Download PDF
+        $('downloadPdf').addEventListener('click', async () => {
+            if (products.length === 0) return showToast('No products');
+            try {
+                const doc = await generatePDF();
+                doc.save('catalog.pdf');
+                showToast('PDF downloaded!');
+            } catch(e) {
+                showToast('Error generating PDF');
+            }
+        });
+
+        // Share PDF
+        $('sharePdf').addEventListener('click', async () => {
+            if (products.length === 0) return showToast('No products');
+            try {
+                const doc = await generatePDF();
+                const blob = doc.output('blob');
+                if (navigator.share) {
+                    await navigator.share({
+                        title: 'Catalog',
+                        files: [new File([blob], 'catalog.pdf', { type: 'application/pdf' })]
+                    });
+                } else {
+                    doc.save('catalog.pdf');
+                }
+            } catch(e) {
+                showToast('Share failed');
+            }
+        });
+
+        // Settings sheet
+        $('settingsBtn').addEventListener('click', () => openSheet($('settingsSheet'), $('settingsBg')));
+        $('settingsBg').addEventListener('click', () => closeSheet($('settingsSheet'), $('settingsBg')));
+
+        // Price format
+        $('priceFormat').addEventListener('change', e => {
+            settings.priceFormat = e.target.value;
+            saveData();
+            render();
+        });
+
+        // Export data
+        $('exportData').addEventListener('click', () => {
+            const data = { products, settings, exportedAt: new Date().toISOString() };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'catalog-backup.json';
+            a.click();
+            showToast('Data exported!');
+        });
+
+        // Import data
+        $('importData').addEventListener('click', () => $('importFile').click());
+        $('importFile').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (data.products) products = data.products;
+                    if (data.settings) settings = { ...settings, ...data.settings };
+                    saveData();
+                    render();
+                    loadSettings();
+                    showToast('Data imported!');
+                } catch(e) {
+                    showToast('Invalid file');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Clear data
+        $('clearData').addEventListener('click', () => {
+            if (confirm('Delete ALL data?')) {
+                localStorage.clear();
+                products = [];
+                settings = { headerColor: '#1e40af', priceColor: '#dc2626', showName: true, showAddress: true, showWhatsapp: true, priceFormat: 'chf' };
+                render();
+                loadSettings();
+                showToast('All data cleared');
+            }
+        });
+
+        // Init
+        render();
+        loadSettings();
+
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
